@@ -87,9 +87,7 @@ export function useAutoScroll(
 }
 
 /** Walk up from `el` to find the first ancestor with overflow scroll/auto. */
-function findScrollableAncestor(
-  el: HTMLElement | null,
-): HTMLElement | null {
+function findScrollableAncestor(el: HTMLElement | null): HTMLElement | null {
   let current = el
   while (current) {
     // In standards mode, body.scrollTop is a no-op even if body has
