@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated'
 
-import {useHaptics} from '#/lib/haptics'
+import {useHaptics, useSelectionHaptic} from '#/lib/haptics'
 import {atoms as a, useTheme, web} from '#/alf'
 import {DotGrid2x3_Stroke2_Corner0_Rounded as GripIcon} from '#/components/icons/DotGrid'
 
@@ -145,6 +145,8 @@ function SortableItem<T>({
 }) {
   const t = useTheme()
   const playHaptic = useHaptics()
+  const playSelectionHaptic = useSelectionHaptic()
+  const lastDragSlot = useSharedValue(-1)
 
   const gesture = Gesture.Pan()
     .onStart(() => {
@@ -153,6 +155,7 @@ function SortableItem<T>({
       const mySlot = s.slots[itemKey]
       state.set({...s, activeKey: itemKey, dragStartSlot: mySlot})
       dragY.set(0)
+      lastDragSlot.set(mySlot)
       if (onDragStart) {
         runOnJS(onDragStart)()
       }
@@ -164,7 +167,17 @@ function SortableItem<T>({
       const startSlot = state.get().dragStartSlot
       const minY = -startSlot * itemHeight
       const maxY = (itemCount - 1 - startSlot) * itemHeight
-      dragY.set(Math.max(minY, Math.min(e.translationY, maxY)))
+      const clampedY = Math.max(minY, Math.min(e.translationY, maxY))
+      dragY.set(clampedY)
+
+      // Fire a soft haptic when crossing into a new row.
+      const currentSlot = Math.round(
+        (startSlot * itemHeight + clampedY) / itemHeight,
+      )
+      if (currentSlot !== lastDragSlot.get()) {
+        lastDragSlot.set(currentSlot)
+        runOnJS(playSelectionHaptic)()
+      }
     })
     .onEnd(() => {
       'worklet'

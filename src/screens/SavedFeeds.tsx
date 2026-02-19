@@ -14,6 +14,7 @@ import {
   type NavigationProp,
 } from '#/lib/routes/types'
 import {logger} from '#/logger'
+import {useA11y} from '#/state/a11y'
 import {
   useOverwriteSavedFeedsMutation,
   usePreferencesQuery,
@@ -27,6 +28,10 @@ import {NoSavedFeedsOfAnyType} from '#/screens/Feeds/NoSavedFeedsOfAnyType'
 import {atoms as a, useBreakpoints, useTheme} from '#/alf'
 import {Admonition} from '#/components/Admonition'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
+import {
+  ChevronBottom_Stroke2_Corner0_Rounded as ChevronDownIcon,
+  ChevronTop_Stroke2_Corner0_Rounded as ChevronUpIcon,
+} from '#/components/icons/Chevron'
 import {FilterTimeline_Stroke2_Corner0_Rounded as FilterTimeline} from '#/components/icons/FilterTimeline'
 import {FloppyDisk_Stroke2_Corner0_Rounded as SaveIcon} from '#/components/icons/FloppyDisk'
 import {Pin_Filled_Corner0_Rounded as PinIcon} from '#/components/icons/Pin'
@@ -72,6 +77,7 @@ function SavedFeedsInner({
   const noSavedFeedsOfAnyType = pinnedFeeds.length + unpinnedFeeds.length === 0
   const noFollowingFeed =
     currentFeeds.every(f => f.type !== 'timeline') && !noSavedFeedsOfAnyType
+  const {screenReaderEnabled} = useA11y()
   const [isDragging, setIsDragging] = useState(false)
 
   useFocusEffect(
@@ -145,6 +151,33 @@ function SavedFeedsInner({
                 <Trans>You don't have any pinned feeds.</Trans>
               </Admonition>
             </View>
+          ) : screenReaderEnabled ? (
+            pinnedFeeds.map((feed, index) => (
+              <PinnedFeedItem
+                key={feed.id}
+                feed={feed}
+                currentFeeds={currentFeeds}
+                setCurrentFeeds={setCurrentFeeds}
+                index={index}
+                total={pinnedFeeds.length}
+                onMoveUp={() => {
+                  const reordered = [...pinnedFeeds]
+                  ;[reordered[index - 1], reordered[index]] = [
+                    reordered[index],
+                    reordered[index - 1],
+                  ]
+                  setCurrentFeeds([...reordered, ...unpinnedFeeds])
+                }}
+                onMoveDown={() => {
+                  const reordered = [...pinnedFeeds]
+                  ;[reordered[index], reordered[index + 1]] = [
+                    reordered[index + 1],
+                    reordered[index],
+                  ]
+                  setCurrentFeeds([...reordered, ...unpinnedFeeds])
+                }}
+              />
+            ))
           ) : (
             <SortableList
               data={pinnedFeeds}
@@ -238,11 +271,19 @@ function PinnedFeedItem({
   currentFeeds,
   setCurrentFeeds,
   dragHandle,
+  index,
+  total,
+  onMoveUp,
+  onMoveDown,
 }: {
   feed: AppBskyActorDefs.SavedFeed
   currentFeeds: AppBskyActorDefs.SavedFeed[]
   setCurrentFeeds: React.Dispatch<AppBskyActorDefs.SavedFeed[]>
-  dragHandle: React.ReactNode
+  dragHandle?: React.ReactNode
+  index?: number
+  total?: number
+  onMoveUp?: () => void
+  onMoveDown?: () => void
 }) {
   const {_} = useLingui()
   const t = useTheme()
@@ -257,6 +298,8 @@ function PinnedFeedItem({
       ),
     )
   }
+
+  const showArrows = onMoveUp !== undefined
 
   return (
     <View
@@ -281,7 +324,36 @@ function PinnedFeedItem({
           shape="square">
           <ButtonIcon icon={PinIcon} />
         </Button>
-        {dragHandle}
+        {showArrows ? (
+          <>
+            <Button
+              label={_(msg`Move up`)}
+              onPress={() => {
+                playHaptic()
+                onMoveUp()
+              }}
+              disabled={index === 0}
+              size="small"
+              color="secondary"
+              shape="square">
+              <ButtonIcon icon={ChevronUpIcon} />
+            </Button>
+            <Button
+              label={_(msg`Move down`)}
+              onPress={() => {
+                playHaptic()
+                onMoveDown!()
+              }}
+              disabled={index === total! - 1}
+              size="small"
+              color="secondary"
+              shape="square">
+              <ButtonIcon icon={ChevronDownIcon} />
+            </Button>
+          </>
+        ) : (
+          dragHandle
+        )}
       </View>
     </View>
   )

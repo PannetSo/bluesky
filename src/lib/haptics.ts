@@ -1,9 +1,24 @@
 import React from 'react'
 import * as Device from 'expo-device'
-import {impactAsync, ImpactFeedbackStyle} from 'expo-haptics'
+import {impactAsync, ImpactFeedbackStyle, selectionAsync} from 'expo-haptics'
 
 import {useHapticsDisabled} from '#/state/preferences/disable-haptics'
 import {IS_IOS, IS_WEB} from '#/env'
+
+/**
+ * Very soft haptic for continuous feedback, e.g. dragging over rows.
+ * Uses iOS selection haptic (the lightest available); no-op elsewhere.
+ */
+export function useSelectionHaptic() {
+  const isHapticsDisabled = useHapticsDisabled()
+
+  return React.useCallback(() => {
+    if (isHapticsDisabled || !IS_IOS) {
+      return
+    }
+    selectionAsync()
+  }, [isHapticsDisabled])
+}
 
 export function useHaptics() {
   const isHapticsDisabled = useHapticsDisabled()
