@@ -672,7 +672,7 @@ export type Events = {
   }
   'translate:override': {
     sourceLanguage: string
-    selectedLanguage: string
+    targetLanguage: string
   }
 
   'verification:create': {}
